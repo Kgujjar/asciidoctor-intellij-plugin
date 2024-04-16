@@ -1,205 +1,562 @@
-= Working with Antora
-:description: This plugin supports Antora attributes like 'imagesdir' and 'examplesdir'. It also resolves xrefs and includes in the preview.
+Software Download using SWDP CLI
 
-https://antora.org/[Antora] helps to write and publish documentation websites.
-It allows combining documentation from multiple repositories into a single website.
+Release 1.0
 
-Each documentation component contains an `antora.yml` file https://docs.antora.org/antora/2.3/standard-directories/[with a common directory structure] with meta information about that component.
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image1.jpeg[image,width=793,height=373]
 
-== Pre-Requisites
-
-Users need to upgrade to version 0.30.31 or later of the plugin.
-Initial support has been added in issue https://github.com/asciidoctor/asciidoctor-intellij-plugin/issues/373[#373].
-
-Auto-complete in `antora.yml` files was implemented starting with plugin version 0.32.54.
-
-== Detection of Antora
-
-The plugin will activate Antora support once it finds a file `antora.yml` and a sub-folder `modules`.
-Antora will be active for all AsciiDoc files located in folders below such a file.
-Once the plugin detects Antora, it activates its Antora features.
-
-The plugin detects Antora playbooks by their name.
-The filename `antora-playbook.yml` would be detected as an Antora playbook, as well as any other file that ends with `.yml` and contains both words `antora` and `playbook`.
-For example, `antora-playbook-author.yml` would be treated as an Antora playbook as well, while `antora-localpreview.yml` would not be treated as an Antora playbook.
-
-== Support provided by the plugin
-
-=== Antora stylesheet for the preview
-
-Once the plugin detects that a page is part of an Antora module, it uses the Antora CSS theme for the preview (starting with plugin version 0.37.7).
-The preview will be in light or dark mode as configured in the plugin's settings.
-
-To configure an individual stylesheet from a remote site, users should create an `.asciidoctorconfig` file like the following in the root or documentation folder of their project:
-
-[source,asciidoc]
-----
-:linkcss:
-:stylesdir: https://docs.mysite.com/_/css/
-:stylesheet: site.css
-----
-
-If the remote stylesheet is not available due to an unreachable server or a missing stylesheet, the preview will default to the standard stylesheet.
-
-For more information see the chapter xref::features/advanced/stylesheets.adoc[] for details.
-
-=== Antora references support
-
-When using the Antora xref macro like `+xref:version@component:module:page.adoc[]+`, the plugin will resolve links to the specific version, component and module with in the current projects.
-For this it searches all available `antora.yml` files in the current project.
-
-For `include::[]` macros the plugin supports the Antora families like `partial$`, `example$` and `page$`.
-
-[NOTE]
-====
-Using Antora page families and includes works in the preview only for trusted project and when IDE is running in the default UNSAFE mode.
-Otherwise, Asciidoctor will not be able to include files outside the document's root folder.
-====
-
-The plugin validates all references to files within the same component, and also across components.
-
-=== Antora component and module name validation
-
-[NOTE]
-====
-Validation of component and module names requires plugin version 0.37.23 or later.
-====
-
-The plugin validates the referenced component and module names.
-If they don't exist, it will highlight this as an error in the editor window.
-
-If a reference includes a version, the module name is only validated if the version and the component exist within the current project.
-If they don't exist, it skips this reference for validation, as the plugin assumes this component to exist in a different branch that isn't checked out in the current project.
-
-For this to work, all components of the Antora site need to be opened in one IntelliJ project.
-If this isn't suitable in a given setup, suppress the inspection for a given reference, or disable the inspection in the IDE's setting for the given project.
-
-.Example how to disable the inspection for a single reference
-[source,asciidoc]
-----
-include::{examplesdir}/antora.adoc[tags=suppressmoduleinspection]
-----
-
-To learn more about how to bundle multiple Git repositories as one IntelliJ project, see the chapter on xref:features/advanced/multimodule.adoc[multi-module projects] for details.
-
-=== Antora editor support
-
-In the editor, the user can autocomplete filenames and references using [.windows.linux]#kbd:[Ctrl+Space]# [.macos]#kbd:[^ Space]# and can navigate to a folder or file using [.windows.linux]#kbd:[Ctrl+B]# [.macos]#kbd:[⌘ B]#.
-
-To allow auto-completion for components that reside in different Git repositories, consider using a xref:features/advanced/multimodule.adoc[multi-module project].
-
-=== Antora YAML schema support
-
-When editing a component descriptor (`antora.yml`) or playbook (`antora-playbook.yml`), the plugin provides JSON-Schema support for validation, auto-completion and documentation.
-Press kbd:[Ctrl+Q] for quick help on each attribute.
-
-For the keys _nav_ and _start_page_ in `antora.yml`, the plugin provides auto-completion.
-
-=== Antora preview support
-
-The preview renders images, includes and links.
-It also resolves https://docs.antora.org/antora/2.3/page/reftext-and-navtitle/[reftext and navtitle in the preview^] (new in Antora 2.3).
-The user can click on links in the preview that will then open in the editor if they link to a local Antora page.
-
-Users can customize the styling of the preview by referencing a stylesheet.
-See section _xref:features/advanced/stylesheets.adoc#remote-stylesheet[Using a remote stylesheet]_ for details.
-
-=== Antora attributes support
-
-The plugin reads all attributes defined in the module's `antora.yml` file's _asciidoc.attributes_ section and uses this for the preview and auto-completion.
-
-Starting with release 0.35.2 of the plugin, it also picks up attributes from an Antora playbook if this is within the same project.
-If the playbook and the components are in different Git repositories, this requires a xref:features/advanced/multimodule.adoc[multi-module project].
-
-The plugin sets multiple attributes to allow referencing files with the current Antora module:
-
-imagesdir:: pointing to `images` of the current module (or `assets/images`, the Antora pre-2.1 style if that folder exists)
-
-partialsdir:: pointing to `partials` of the current module (or `pages/_partials`, the Antora pre-1.1 style if that folder exists)
-
-attachmentsdir:: pointing to `attachments` of the current module (or `assets/attachments`, the Antora pre-2.1 style if that folder exists)
-
-examplesdir:: pointing to `examples` of the current module
-
-page-*:: These and several other intrinsic attributes are supported for the preview like `page-component-version`, `page-module` etc.
-
-Any of these attributes is set only if the directory exists.
-While `imagesdir` and `attachmentsdir` use a relative path so that they work best with image and link macros, `examplesdir` and `partialsdir` use an absolute path that works best with includes macros.
-
-[#antora-collector-extension-support]
-=== Antora Collector Extension support
-
-[NOTE]
-====
-This is new in plugin version 0.38.6.
-
-Follow https://github.com/asciidoctor/asciidoctor-intellij-plugin/issues/1177[asciidoctor/asciidoctor-intellij-plugin#1177] for updates on this feature.
-====
-
-The https://gitlab.com/antora/antora-collector-extension[Antora Collector Extension] allows content that is not checked into a Git repository to be used as a source for an Antora generated site.
-The generated content has a higher priority than the checked-in content, so that it overrides and existing content at build-time.
-When the command generates an `antora.yml` file in the root folder the scanned directory, those properties overwrite the properties in the component descriptor.
-
-From a writer's point of view, the following features are supported:
-
-* Attributes and other information from a generated `antora.yml` file overwrites the component's `antora.yml` settings.
-
-* Generated resources like pages, partials and images are available for auto-completion and validation.
-Filtering generated contents via the property <<scan-files>>  is not supported, yet.
-
-This table displays which properties are supported by the plugin:
-
-[cols="1a,1a,4a",]
+[width="100%",cols="100%",options="header",]
 |===
-|Property | Supported? | Comment
-
-| `run.*`
-| no
-| The plugin won't run the generators. Writers should run them from the command line as and when needed.
-
-| `scan.dir`
-| partially
-| The directory with the contents generated by the `run` command.
-To be supported by the plugin it must start with a `./` meaning this directory is relative to the `antora.yml` file.
-
-| `scan.base`
-| yes
-| The folder where the plugin places the contents of the scanned directory.
-
-|
-[[scan-files,`scan.files`]] `scan.files`
-| no
-| At the moment, the plugin will scan files in the `scan.dir` folder.
-A future version of the plugin will support this. Follow the GitHub issue https://github.com/asciidoctor/asciidoctor-intellij-plugin/issues/1177[asciidoctor/asciidoctor-intellij-plugin#1177] for details.
-
+|User Guide
+|March 2024
+|*© 2024 Nokia. Nokia Confidential Information* +
+Use subject to agreed restrictions on disclosure and use.
 |===
 
-=== Examples of supported Antora syntax
+*Legal Notice*
 
-[source,asciidoc]
-------
-include::{examplesdir}/antora.adoc[tags=example]
-------
+Nokia is committed to diversity and inclusion. We are continuously
+reviewing our customer documentation and consulting with standards
+bodies to ensure that terminology is inclusive and aligned with the
+industry. Our future customer documentation will be updated accordingly.
 
-== Example projects
+____________________________
 
-Antora::
-Site: https://docs.antora.org/ +
-Source code: https://gitlab.com/antora/antora/-/tree/master/docs
+This document includes Nokia proprietary and confidential information,
+which may not be distributed or disclosed to any third parties without
+the prior written consent of Nokia.
 
-Apache Camel::
-Site: https://camel.apache.org/manual/latest/ +
-Source code: https://github.com/apache/camel/tree/master/docs/user-manual
+This document is intended for use by Nokia’s customers (“You”/”Your”) in
+connection with a product purchased or licensed from any company within
+Nokia Group of Companies. Use this document as agreed. You agree to
+notify Nokia of any errors you may find in this document; however,
+should you elect to use this document for any purpose(s) for which it is
+not intended, You understand and warrant that any determinations You may
+make or actions You may take will be based upon Your independent
+judgment and analysis of the content of this document.
 
-Apache Camel Kafka Connector::
-Site: https://camel.apache.org/camel-kafka-connector/latest/ +
-Source code: https://github.com/apache/camel-kafka-connector/tree/master/docs
+Nokia reserves the right to make changes to this document without
+notice. At all times, the controlling version is the one available on
+Nokia’s site.
 
-Debezium::
-Site: https://debezium.io/documentation/reference/index.html +
-Source code: https://github.com/debezium/debezium/tree/master/documentation
+No part of this document may be modified.
 
-IntelliJ plugin for AsciiDoc::
-Site: https://intellij-asciidoc-plugin.ahus1.de/docs/users-guide/index.html +
-Source code: https://github.com/asciidoctor/asciidoctor-intellij-plugin/tree/main/doc
+NO WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO ANY WARRANTY OF AVAILABILITY, ACCURACY, RELIABILITY, TITLE,
+NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE,
+IS MADE IN RELATION TO THE CONTENT OF THIS DOCUMENT. IN NO EVENT WILL
+NOKIA BE LIABLE FOR ANY DAMAGES, INCLUDING BUT NOT LIMITED TO SPECIAL,
+DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL OR ANY LOSSES, SUCH AS BUT
+NOT LIMITED TO LOSS OF PROFIT, REVENUE, BUSINESS INTERRUPTION, BUSINESS
+OPPORTUNITY OR DATA THAT MAY ARISE FROM THE USE OF THIS DOCUMENT OR THE
+INFORMATION IN IT, EVEN IN THE CASE OF ERRORS IN OR OMISSIONS FROM THIS
+DOCUMENT OR ITS CONTENT.
+
+Copyright and trademark: Nokia is a registered trademark of Nokia
+Corporation. Other product names mentioned in this document may be
+trademarks of their respective owners.
+
+© 2024 Nokia.
+
+== Contents
+
+link:#overview[1. Overview link:#overview[4]]
+
+link:#swdp-download-sites[2. SWDP download sites
+link:#swdp-download-sites[4]]
+
+link:#_Toc162857002[3. Access Token management link:#_Toc162857002[5]]
+
+link:#access-token-management-using-cli[3.1 Access token management
+using CLI link:#access-token-management-using-cli[5]]
+
+link:#prerequisite[3.1.1 Prerequisite link:#prerequisite[5]]
+
+link:#generating-an-access-token[3.1.2 Generating an access token
+link:#generating-an-access-token[5]]
+
+link:#revoking-the-access-token[3.1.3 Revoking the access token
+link:#revoking-the-access-token[6]]
+
+link:#access-token-management-using-swdp-portal-availability-to-be-announced-later[3.2
+Access token management using SWDP Portal (Availability to be announced
+later)
+link:#access-token-management-using-swdp-portal-availability-to-be-announced-later[6]]
+
+link:#logging-in-to-swdp-portal[3.2.1 Logging in to SWDP Portal
+link:#logging-in-to-swdp-portal[7]]
+
+link:#managing-access-tokens-using-swdp-portal[3.2.2 Managing access
+tokens using SWDP Portal
+link:#managing-access-tokens-using-swdp-portal[9]]
+
+link:#software-download[4. Software download
+link:#software-download[14]]
+
+link:#generic-file-download[4.1 Generic file download
+link:#generic-file-download[14]]
+
+link:#helm-chart-download[4.2 Helm chart download
+link:#helm-chart-download[14]]
+
+link:#docker-image-download[4.3 Docker image download
+link:#docker-image-download[15]]
+
+link:#definition-and-acronyms[5. Definition and acronyms
+link:#definition-and-acronyms[16]]
+
+____
+____
+
+== Overview
+
+Nokia’s Software Delivery Platform (SWDP) offers a fully integrated and
+automated solution to deliver software to Nokia customers.
+
+This user guide describes the Command Line Interface (CLI) method to:
+
+* Generate and manage tokens that are required to access the SWDP
+system.
+* Download software artifacts from SWDP.
+
+____
+Examples and commands are included for your reference.
+____
+
+== SWDP download sites
+
+SWDP has two sites that can be used to download software:
+
+* A site in Finland for all customers except the United States, and
+* A site in the US for customers in the US.
+
+Depending on the connection (VPN or no-VPN) between your system and the
+SWDP download site, you can download using the following URLs:
+
+[width="100%",cols="24%,34%,42%",options="header",]
+|===
+|*SWDP download site* a|
+*From public internet*
+
+*(Availability to be announced)*
+
+|*From Nokia VPN*
+|FI (for non-US customers)
+|https://swdp-fi.support.nokia.com/[https://swdp-fi.support.nokia.com]
+|https://swdp-pull-fin.swdp.dyn.nesc.nokia.net/[https://swdp-pull-fin.swdp.dyn.nesc.nokia.net]
+
+|US (for US customers)
+|https://swdp-us.support.nokia.com/[https://swdp-us.support.nokia.com] 
+|https://pull-us.swdp.dyn.nesc.nokia.net/[https://pull-us.swdp.dyn.nesc.nokia.net]
+|===
+
+== Access Token management
+
+To access the SWDP download site via CLI, you will need a Personal
+Access Token (PAT).
+
+Authentication to the SWDP download site is done using the username PAT
+and a generated access token.
+
+The access token is generated and managed either using a dedicated
+service under the SWDP web GUI or using dedicated SWDP download site
+endpoint(s). The access token is decrypted on the SWDP side, and
+credentials are checked against Nokia users Active Directory.
+
+Credentials must be passed via HTTP Basic Authentication (HTTP Header
+Authorization containing base64-encoded credentials).
+
+=== Access token management using CLI
+
+This section explains how to generate or revoke an access token using
+CLI.
+
+==== Prerequisite
+
+Ensure that you have access to the
+file:///C:\Users\gequirog\AppData\Local\Microsoft\Windows\INetCache\Content.Outlook\CWR6J1WQ\(https:\customer.nokia.com\support\s\)[Nokia
+Support Portal]. The registration guide to the Nokia Support Portal is
+available on the portal website.
+
+For SWDP token generation, you need to specify the same credentials
+(email address and password) that you use to access the Nokia Support
+Portal.
+
+==== Generating an access token
+
+[arabic]
+. To generate the access token, run the command below:
+
+curl <__hostname__>/api/v1/token/create -u <__email address__> -X POST
+
+===== The -u option is used to specify your Nokia Support Portal email address for authentication. 
+
+* You are prompted to enter a password.
+
+[arabic, start=2]
+. Enter the same password you use to access Nokia Support Portal.
+
+===== The token is valid for 3 months, after which the user must generate a new token.
+
+Example:
+
+curl https://swdp-pull-fi.swdp.dyn.nesc.nokia.nethttps://interceptor.generic-finland-pull-cluster.near-sandbox.swdp.dyn.nesc.nokia.net/api/v1/token/create[/api/v1/token/create] -u john.smith@example.com
+-X POST
+
+*IMPORTANT:*
+
+Token generation is limited to 20 requests per minute per IP address.
+Whenever the limit is reached, error 429 is displayed.
+
+*CAUTION:*
+
+DO NOT ENTER THE PASSWORD DIRECTLY INTO THE COMMAND LINE!
+
+The password should *be always* provided via the *prompt*. With this
+approach, it is ensured the password is not left in any bash history.
+
+==== Revoking the access token 
+
+When you no longer need a token, you can revoke it.
+
+Revoke only one token
+
+To revoke only one specific token, run the command below using the value
+PAT (personal access token) as username. When prompted for a password,
+the revoked token must be used:
+
+curl <__hostname__>/api/v1/token/revoke -u PAT -X POST
+
+Once the command is run, the token will be removed.
+Revoke all tokens for a given authentication username (user mail, country code, end user id)
+
+To revoke all tokens related to a specific authentication username, run
+the curl command shown below. When prompted for a password, the user
+password in LDAP must be used:
+
+curl <__hostname__>/api/v1/token/revoke/all -u <__email address__> -X
+POST
+
+This will remove all tokens of the given authentication username.
+
+=== Access token management using SWDP Portal (Availability to be announced later)
+
+This section will cover how to generate a token, view or delete a token
+using the SWDP Portal**.**
+
+SWDP Portal offers two web portal URLs to create access tokens:
+
+* To create tokens for a customer located in the United States, use:
+https://portal.pull-us.swdp.dyn.nesc.nokia.net/
+* To create tokens for a non-US customer, use:
++
+https://portal.swdp-pull-fin.swdp.dyn.nesc.nokia.net/
+
+Figure 1 SWDP Portal landing page
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image3vertopal_f827917202744d7489446d355e3eca2f\media\image3.tmp.tmp[View of
+SWDP Portal,width=690,height=218]
+
+==== Logging in to SWDP Portal 
+
+On the SWDP Portal, click the *Login* button at the top-right corner.
+
+* Pick your account from the list shown, or
+* Click the *Use another account* button to sign in with a different
+email and password.
+
+===== Pick an Account
+
+If you see your credentials in the displayed list, click on it:
+
+Figure 2 Accounts available when logging in.
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image4.tmp[A
+screenshot of a computer Description automatically
+generated,width=520,height=261]
+
+Once you click your account, you will be logged in.
+
+===== Use Another Account
+
+If you do not see your account, click the *Use another account* button,
+then type your email:
+
+Figure 3 Sign in window
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image5.tmp[A
+screenshot of a computer Description automatically
+generated,width=337,height=309]
+
+Then type your password:
+
+Figure 4 Password Window
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image6.tmp[A
+screenshot of a login page Description automatically
+generated,width=337,height=261]
+
+* If logging in for the first time, then a pop-up window is displayed
+asking you to grant access. Click *Accept* to grant access.
+* After 1 hour of inactivity, if you click on any element, you will be
+automatically redirected to the login page.
+
+____
+____
+
+==== Managing access tokens using SWDP Portal
+
+In this section you will be guided on how to navigate the SWDP Portal to
+create, delete and view token(s).
+
+===== Access Tokens
+
+After you have logged into the SWDP Portal, you will see the landing
+page. Click the *Access Tokens* button:
+
+Figure 5 SWDP Portal after successful login
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image7.tmp[A
+screenshot of a computer Description automatically
+generated,width=631,height=373]
+
+You will see the Token Management Page. From here, you can generate,
+delete and view your token(s):
+
+Figure 6 Access token window
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image8.png[A
+screenshot of a computer Description automatically
+generated,width=626,height=364]
+
+===== Generating a token
+
+[arabic]
+. To create a token, click the *Generate Token* button.
+
+A new pop-up window will appear, asking you to provide a name to your
+token.
+
+* Type a unique name meeting the following criteria:
+* Starts and ends with an alphanumeric character.
+* Does not contain any other characters.
+** Max 64 characters.
+** May contain alphanumeric characters or hyphens.
+
+*NOTE*: Country code and Customer ID will be automatically populated and
+are not editable.
+
+____
+Figure 7 Generate new access token dialog box
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image9.tmp[A
+screenshot of a login page Description automatically
+generated,width=468,height=304]
+____
+
+After Typing the name, click *Submit* button.
+
+[arabic, start=2]
+. The next pop-up window will contain the token.
+
+____
+Figure 8 Token created dialog box
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image10.tmp[A
+screenshot of a computer error Description automatically
+generated,width=435,height=249]
+____
+
+* Make sure to copy it now and store it in a safe place. It will not be
+shown to you again.
+
+[arabic, start=3]
+. After you copy your token, click the *Close* button.
+. You will see your previous and recently created token names.
+
+Figure 9 Access token window
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image11.png[A
+screenshot of a computer Description automatically
+generated,width=631,height=228]
+
+===== Delete Tokens
+
+There are two options for deleting tokens:
+
+* Select one or more tokens to delete individually, or
+* Delete all your tokens at once.
+
+To delete one or multiple tokens, click the checkbox next to each
+token's name, then click the *Delete selected* button. A confirmation
+message displays. Click *Yes* to delete the selected tokens.
+
+Figure 10 Selection of token(s) to be deleted.
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image12.png[A
+screenshot of a computer Description automatically
+generated,width=540,height=173]
+
+If you want to delete all tokens at once, click the *Delete all* button.
+You will be prompted to confirm your choice to delete all your access
+tokens. Click *Yes* to delete all tokens.
+
+Figure 11 Delete all Tokens pop-up window
+
+image:vertopal_f827917202744d7489446d355e3eca2f/media/image13.png[A
+screenshot of a computer Description automatically
+generated,width=447,height=189]
+
+===== Expiration of a token
+
+If you have any token(s) that are about to expire, you will receive an
+email notification with the information from each token. If you still
+need the token(s), make sure to create new ones on the SWDP Portal.
+
+* Email notification is set to two weeks, one week, one day and the day
+of expiration of the token. Expired tokens get deleted once the last
+notification is sent on day of expiration.
+
+== Software download
+
+There are three types of download commands described in this section:
+
+* Generic file download
+* Helm chart download
+* Docker image download
+
+=== Generic file download 
+
+The generic file download is completed using the wget command.
+
+[arabic]
+. Run the following wget command:
+
+wget --http-user=PAT --ask-password https://<__swdp download
+site__>/artifactory/<__product-name__>-Product/<__file-path__>  
+
+* The --http-user option is used to specify the username for HTTP
+authentication, which is a static value PAT (personal access token).
+* The --ask-password option prompts the user to enter a token for
+authentication.
+
+[arabic, start=2]
+. {blank}
++
+____
+Enter the token to proceed with download.
+____
+
+*Example:*
+
+End customer downloading a file for Altiplano Access Controller:
+
+$ wget
+--http-user=PAT --ask-password https://swdp-fi.support.nokia.com/artifactory/Altiplano-Access-Controller-Product/21.6.2/21.6.2/INSTALL_MEDIA/product.txt[https://swdp-fi.support.nokia.com]https://swdp-fi.support.nokia.com/artifactory/Altiplano-Access-Controller-Product/21.6.2/21.6.2/METADATA/product.txt[/artifactory/Altiplano-Access-Controller-Product/21.6.2/21.6.2/]https://swdp-fi.support.nokia.com/artifactory/Altiplano-Access-Controller-Product/21.6.2/21.6.2/INSTALL_MEDIA/product.txt[INSTALL_MEDIA/product.txt]
+
+=== Helm chart download
+
+The Helm chart download must be started with the helm repo command. Once
+this command is entered, then other helm commands can be used. Following
+is the format for the helm repo command:
+
+helm repo add <__reponame__>
+<__hostname__>/artifactory/<__product-name__>-Helm --username PAT --password
+<__token__> --pass-credentials
+
+*Example: *
+
+helm repo add
+altiplano https://swdp-fi.support.nokia.com/artifactory/Altiplano-Access-Controller-Product-Helm --username PAT --password
+<token> --pass-credentials
+
+After that, the regular helm commands will work:
+
+helm search repo altiplano-infra –versions –devel
+
+helm pull aprepo/altiplano-infra --version 21.12.1-REL-0216
+
+helm pull fmcrepo/altiplano-infra --version 21.12.1-REL-0216
+
+=== Docker image download
+
+Run the following command to log in to Docker:
+
+docker login https://<__product name__>-docker.<__hostname__> -u PAT
+
+*Example:*
+
+docker
+login https://altiplano-access-controller-product-docker.swdp-fi.support.nokia.com/[https://altiplano-access-controller-product-docker.swdp-fi.support.nokia.com] -u
+PAT 
+
+After logging in, enter the access token, when prompted.
+
+After that, the regular docker commands will work:
+
+docker
+pull http://altiplano-access-controller-product-docker.swdp-fi.support.nokia.com/anv:21.12.1-REL_251[altiplano-access-controller-product-docker.swdp-fi.support.nokia.com/anv:21.12.1-REL_251] +
+docker
+pull http://altiplano-fastmile-controller-product-docker.swdp-fi.support.nokia.com/anv:21.12.1-REL_251[altiplano-fastmile-controller-product-docker.swdp-fi.support.nokia.com/anv:21.12.1-REL_251]
+
+== Definition and acronyms 
+
+[width="100%",cols="25%,75%",options="header",]
+|===
+|Term |Definition
+|Generic File |A file of the lowest delivery level of a product
+
+|Helm Chart |A Helm chart is a package format. It is also known as
+containerized software
+
+|Docker image |A Docker image is a lightweight, standalone, executable
+package that contains everything needed to run a piece of software,
+including the code, runtime, libraries, and dependencies.
+
+|HTTP Basic Authentication |Involves the process of securely accessing
+web resources via commands in a terminal or console. The method
+described in this guide is token-based.
+
+|Token |Is a unique and encrypted piece of data used for authentication
+|===
+
+[width="100%",cols="25%,75%",options="header",]
+|===
+|Acronym |Definition
+|CLI |Command Line Interface
+
+|HTTP |Hypertext Transfer Protocol 
+
+|SWDP a|
+Software Delivery Platform
+
+Common name for the ecosystem consisting of SEaDOC and NEAR
+
+|PAT |Personal Access Token
+
+|LDAP |Lightweight Directory Access Protocol
+
+|GUI |Graphical User Interface
+
+|API |Application Programming Interface
+
+|VPN |Virtual Private Network
+
+|CURL |Client URL
+
+|SEaDOC a|
+Software Entitlement and Delivery Orchestration Center
+
+Based on the eccenca Corporate Memory solution. Links the commercial
+entitlement to the detailed technical product structure, orchestrates
+the SW distribution, orchestrates delivery compliance checks.
+
+|NEAR a|
+Nokia Enterprise Artifacts Repository
+
+Is the main SW Repository of SWDP. Its based on JFrog’s Enterprise
+solution, which is an end-to-end universal DevOps platform for CI/CD
+pipelines and includes all JFrog products such as Artifactory,
+Distribution and Mission Control.
+
+|===
 
